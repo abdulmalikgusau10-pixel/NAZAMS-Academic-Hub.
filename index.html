@@ -413,6 +413,48 @@ const supabaseClient = window.supabase.createClient(
 
 })();
    </script>
+ <script>
+async function loadSupabaseSubjects() {
+  const subjectList = document.getElementById("subjectList");
+
+  subjectList.innerHTML = "<p>Loading subjects...</p>";
+
+  const { data, error } = await supabaseClient
+    .from("Subjects")
+    .select("subject_name, level")
+    .order("level");
+
+  if (error) {
+    subjectList.textContent = "Unable to load subjects: " + error.message;
+    return;
+  }
+
+  subjectList.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    subjectList.textContent = "No subjects have been uploaded yet.";
+    return;
+  }
+
+  data.forEach(subject => {
+    const card = document.createElement("div");
+    card.className = "card subject";
+    card.dataset.level = subject.level || "";
+
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.textContent = subject.level || "Level";
+
+    const heading = document.createElement("h3");
+    heading.textContent = subject.subject_name;
+
+    card.append(pill, heading);
+    subjectList.appendChild(card);
+  });
+}
+
+loadSupabaseSubjects();
+     </script>
 </body>
                                                                                                                                                                                                             </html>
    
