@@ -500,7 +500,54 @@ loadSupabaseSubjects();
   });
 }
 
-loadSupabaseResources();
+async function loadSupabaseResources() {
+  const bookList = document.getElementById("bookList");
+
+  bookList.innerHTML = "<p>Loading uploaded resources...</p>";
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from("nazams-resources")
+    .list("", { limit: 100, offset: 0 });
+
+  if (error) {
+    bookList.textContent = "Unable to load resources: " + error.message;
+    return;
+  }
+
+  const files = (data || []).filter(file => file.id);
+
+  bookList.innerHTML = "";
+
+  if (files.length === 0) {
+    bookList.textContent = "No uploaded files found.";
+    return;
+  }
+
+  for (const file of files) {
+    const { data: linkData, error: linkError } =
+      await supabaseClient.storage
+        .from("nazams-resources")
+        .createSignedUrl(file.name, 3600);
+
+    if (linkError) continue;
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const heading = document.createElement("h3");
+    heading.textContent = file.name;
+
+    const link = document.createElement("a");
+    link.href = linkData.signedUrl;
+    link.textContent = "Open resource";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    card.append(heading, link);
+    bookList.appendChild(card);
+  }
+}. 
      </script>
 </body>
                                                                                                                                                                                                             </html>
