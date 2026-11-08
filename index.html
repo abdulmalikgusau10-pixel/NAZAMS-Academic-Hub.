@@ -507,7 +507,7 @@ async function loadSupabaseResources() {
 
   const { data, error } = await supabaseClient
     .storage
-    .from("nazams-resources")
+    .from("nazams-resources in")
     .list("", { limit: 100, offset: 0 });
 
   if (error) {
@@ -527,7 +527,7 @@ async function loadSupabaseResources() {
   for (const file of files) {
     const { data: linkData, error: linkError } =
       await supabaseClient.storage
-        .from("nazams-resources")
+        .from("nazams-resources in")
         .createSignedUrl(file.name, 3600);
 
     if (linkError) continue;
