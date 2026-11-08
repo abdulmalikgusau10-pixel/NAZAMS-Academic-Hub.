@@ -235,6 +235,184 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 </script>
+ <script>
+(function () {
+  const profile = document.getElementById("profile");
+
+  const authCard = document.createElement("div");
+  authCard.className = "card";
+  authCard.style.marginBottom = "20px";
+
+  authCard.innerHTML = `
+    <h3>NAZAMS Student Account</h3>
+    <p>Create an account or sign in to access your student profile.</p>
+
+    <label>Email Address</label>
+    <input id="authEmail" type="email" placeholder="Enter your email">
+
+    <label>Password</label>
+    <input id="authPassword" type="password" placeholder="Enter your password">
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px">
+      <button class="primary" id="registerBtn">Create Account</button>
+      <button class="primary" id="loginBtn">Sign In</button>
+      <button class="primary" id="logoutBtn">Sign Out</button>
+    </div>
+
+    <p id="authFeedback" aria-live="polite"></p>
+    <p id="authStatus">Checking account status...</p>
+  `;
+
+  profile.insertBefore(authCard, profile.firstChild);
+
+  const feedback = document.getElementById("authFeedback");
+  const status = document.getElementById("authStatus");
+
+  function showMessage(message) {
+    feedback.textContent = message;
+  }
+
+  async function saveCloudProfile(user) {
+    const profileData = {
+      id: user.id,
+      full_name:
+        document.getElementById("studentName").value.trim() ||
+        user.user_metadata?.full_name || "",
+      school_code:
+        document.getElementById("studentSchool").value.trim() ||
+        user.user_metadata?.school_code || "",
+      level:
+        document.getElementById("studentLevel").value ||
+        user.user_metadata?.level || ""
+    };
+
+    const { error } = await supabaseClient
+      .from("student_profiles")
+      .upsert(profileData, { onConflict: "id" });
+
+    if (error) {
+      showMessage("Profile error: " + error.message);
+      return;
+    }
+
+    showMessage("Your student profile has been saved securely.");
+  }
+
+  document.getElementById("registerBtn").onclick = async function () {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const name = document.getElementById("studentName").value.trim();
+    const school = document.getElementById("studentSchool").value.trim();
+    const level = document.getElementById("studentLevel").value;
+
+    if (!email || !password || !name || !school || !level) {
+      showMessage("Complete your profile and enter your email and password first.");
+      return;
+    }
+
+    if (password.length < 6) {
+      showMessage("Your password must contain at least 6 characters.");
+      return;
+    }
+
+    showMessage("Creating your account...");
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          school_code: school,
+          level: level
+        }
+      }
+    });
+
+    if (error) {
+      showMessage(error.message);
+      return;
+    }
+
+    if (data.session) {
+      await saveCloudProfile(data.user);
+      status.textContent = "Account active.";
+    } else {
+      showMessage("Account created. Check your email for the verification link, then sign in.");
+    }
+  };
+
+  document.getElementById("loginBtn").onclick = async function () {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+
+    if (!email || !password) {
+      showMessage("Enter your email and password.");
+      return;
+    }
+
+    showMessage("Signing in...");
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      showMessage(error.message);
+      return;
+    }
+
+    status.textContent = "Signed in as " + data.user.email;
+
+    const { data: savedProfile, error: profileError } = await supabaseClient
+      .from("student_profiles")
+      .select("*")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      showMessage("Profile loading error: " + profileError.message);
+      return;
+    }
+
+    if (savedProfile) {
+      document.getElementById("studentName").value = savedProfile.full_name || "";
+      document.getElementById("studentSchool").value = savedProfile.school_code || "";
+      document.getElementById("studentLevel").value = savedProfile.level || "";
+      showMessage("Welcome back! Your profile has been loaded.");
+    } else {
+      await saveCloudProfile(data.user);
+    }
+  };
+
+  document.getElementById("logoutBtn").onclick = async function () {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+      showMessage(error.message);
+      return;
+    }
+
+    status.textContent = "You are signed out.";
+    showMessage("You have signed out successfully.");
+  };
+
+  supabaseClient.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      status.textContent = "Unable to check account status.";
+      return;
+    }
+
+    if (data.session) {
+      status.textContent = "Signed in as " + data.session.user.email;
+    } else {
+      status.textContent = "No student account is currently signed in.";
+    }
+  });
+
+})();
+   </script>
 </body>
                                                                                                                                                                                                             </html>
    
