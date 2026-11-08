@@ -454,6 +454,53 @@ async function loadSupabaseSubjects() {
 }
 
 loadSupabaseSubjects();
+  async function loadSupabaseResources() {
+  const bookList = document.getElementById("bookList");
+
+  bookList.innerHTML = "<p>Loading resources...</p>";
+
+  const { data, error } = await supabaseClient
+    .from("Resources")
+    .select("title, resource_type, file_url");
+
+  if (error) {
+    bookList.textContent = "Unable to load resources: " + error.message;
+    return;
+  }
+
+  bookList.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    bookList.textContent = "No resources uploaded yet.";
+    return;
+  }
+
+  data.forEach(resource => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const heading = document.createElement("h3");
+    heading.textContent = resource.title;
+
+    const type = document.createElement("p");
+    type.textContent = resource.resource_type || "Resource";
+
+    card.append(heading, type);
+
+    if (resource.file_url) {
+      const link = document.createElement("a");
+      link.href = resource.file_url;
+      link.textContent = "Open resource";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      card.appendChild(link);
+    }
+
+    bookList.appendChild(card);
+  });
+}
+
+loadSupabaseResources();
      </script>
 </body>
                                                                                                                                                                                                             </html>
